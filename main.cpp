@@ -114,6 +114,7 @@ public:
 		if (distance < train_capacity) {
 			return distance;
 		}
+		// TODO this is all bad
 		// Assume that the last stretch will be a whole tank
 		double fuel_cost = 0.0;
 		const int last_stop_pos = distance - train_capacity;
