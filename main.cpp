@@ -48,18 +48,36 @@ struct Price {
 
 class RailLine {
 public:
-	RailLine(int length, int station_spacing, double train_capacity) :
+	RailLine(int length, int station_spacing, int train_capacity) :
 		length(length), station_spacing(station_spacing), train_capacity(train_capacity)
 	{
 		// Create all the stations
 		for (int i = 0; i < length; i += station_spacing) {
 			stations.emplace_back(i);
 		}
-		stations.at(0).add_fuel_pump(FuelPump(1.0));
+		stations.at(0).add_fuel_pump(FuelPump(0.0));
+
+		// Initial trains from original free station
+		{
+			int current_station_id = 0;
+			int current_fuel = train_capacity;
+			//double price_for_full_load = stations.at(current_station_id).get_best_price() * train_capacity;
+
+			++current_station_id;
+			current_fuel -= 2 * station_spacing; // 2x because we have to make it back to the previous station to refuel too
+			while (current_fuel > 0 && current_station_id < stations.size()) {
+				// If the train dumped all its fuel right now, what would the station it creates look like?
+				FuelPump for_this_route( static_cast<double>((station_spacing*current_station_id)) / current_fuel);
+				stations.at(current_station_id).add_fuel_pump(for_this_route);
+
+				++current_station_id;
+				current_fuel -= 2 * station_spacing;
+			}
+		}
 
 		// Run the trains to gen fuel prices
-		int start_position = 0;
-		int start_station_id = 0;
+		int start_position = station_spacing;
+		int start_station_id = 1;
 		while (start_position < length) {
 			//int current_train_pos = start_position;
 			int current_station_id = start_station_id;
@@ -77,7 +95,6 @@ public:
 				current_fuel -= 2 * station_spacing;
 			}
 
-
 			++start_station_id;
 			start_position += station_spacing;
 		}
@@ -92,16 +109,39 @@ public:
 		}
 		return prices;
 	}
+	double get_travel_cost_for_distance(const int distance) const {
+		// In case we can do the trip without refueling
+		if (distance < train_capacity) {
+			return distance;
+		}
+		// Assume that the last stretch will be a whole tank
+		double fuel_cost = 0.0;
+		const int last_stop_pos = distance - train_capacity;
+		const auto stop_id = position_to_id(last_stop_pos);
+		const auto fuel_price = stations.at(stop_id).get_best_price();
+		fuel_cost += fuel_price * train_capacity;
+
+		if (last_stop_pos > train_capacity) {
+			throw std::exception("Cannot reach last stop");
+		}
+
+		return fuel_cost + distance;
+	}
 private:
+	size_t position_to_id(int position) const {
+		return position / station_spacing;
+	}
 	int length;
 	int station_spacing;
-	double train_capacity;
+	int train_capacity;
 	std::vector<Station> stations;
 };
 
 int main() {
-	RailLine r(1200, 50, 500.0);
+	RailLine r(1200, 100, 500);
 	for (const auto& price : r.get_fuel_prices()) {
-		std::cout << "Dist: " << price.position << " Price: " << price.price << std::endl;
+		std::cout << "Dist: \t" << price.position << " \tPrice: \t" << price.price << std::endl;
 	}
+	int travel_distance = 600;
+	std::cout << "Best trip cost for distance: " << travel_distance << " is " << r.get_travel_cost_for_distance(travel_distance) << std::endl;
 }
