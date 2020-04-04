@@ -53,7 +53,7 @@ int main() {
 	// Output format is for gnu plot
 	std::cout << "# Dist Capacity fuel" << std::endl;
 	for (double capacity = 500; capacity <= 2000; capacity += 100) {
-		for (double distance = 100; distance <= 6000; distance += 100) {
+		for (double distance = 100; distance <= 7000; distance += 100) {
 			double fuel = get_fuel_cost(distance, capacity);
 			std::cout << distance << " " << capacity << " " << fuel << std::endl;
 		}
