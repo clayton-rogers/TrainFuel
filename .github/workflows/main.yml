@@ -24,7 +24,7 @@ jobs:
 
     # Runs a single command using the runners shell
     - name: Build
-      run: g++ -Wall -Wextra -Wpedantic -std=c++17 -O3 -o train main.cpp
+      run: g++ -Wall -Wextra -Wpedantic -std=c++17 -O3 -o train main.cpp -lpthread
 
     # Runs a set of commands using the runners shell
     - name: Run program
