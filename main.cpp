@@ -1,6 +1,8 @@
 #include <iostream>
 #include <iomanip>
 #include <chrono>
+#include <vector>
+#include <thread>
 
 struct TrainState {
 	double distance = 0.0;
@@ -51,22 +53,85 @@ double get_fuel_cost(double distance, double capacity) {
 	return fuel;
 }
 
-int main() {
-	// Output format is for gnu plot
-	std::cout << "# Dist Capacity fuel" << std::endl;
-	for (double capacity = 500; capacity <= 2000; capacity += 100) {
+class Work {
+public:
+	Work(double capacity) : capacity(capacity) {}
+	struct Result {
+		double distance = 0.0;
+		double fuel = 0.0;
+		Result(double distance, double fuel) : distance(distance), fuel(fuel) {}
+	};
+
+	std::vector<Result> results;
+
+	void run() {
 		bool exceeded_time = false;
 		double fuel = 0.0;
-		for (double distance = 100; distance <= 20000; distance += 100) {
+		for (double distance = 10; distance <= 20000; distance += 100) {
 			auto start_time = std::chrono::high_resolution_clock::now();
 			if (!exceeded_time) {
 				fuel = get_fuel_cost(distance, capacity);
 			}
-			std::cout << distance << " " << capacity << " " << std::fixed << fuel << std::endl;
-			if (std::chrono::high_resolution_clock::now() - start_time > std::chrono::seconds(2)) {
+			results.emplace_back(distance, fuel);
+			//std::cout << distance << " " << capacity << " " << std::fixed << fuel << std::endl;
+			if (std::chrono::high_resolution_clock::now() - start_time > std::chrono::seconds(10)) {
 				exceeded_time = true;
 			}
 		}
+		//std::cout << std::endl; // blank line between sets
+	}
+
+	void print_result() {
+		for (const auto& r : results) {
+			std::cout << r.distance << " " << capacity << " " << std::fixed << r.fuel << std::endl;
+		}
+	}
+
+	const double capacity;
+
+private:
+	
+};
+
+int main() {
+	// Output format is for gnu plot
+	std::cout << "# Dist Capacity fuel" << std::endl;
+	std::vector<Work> works;
+	for (double capacity = 500; capacity <= 2000; capacity += 100) {
+		works.emplace_back(capacity);
+		//Work w(capacity);
+		//w.run();
+		//w.print_result();
+		//std::cout << std::endl; // blank line between sets
+
+		//bool exceeded_time = false;
+		//double fuel = 0.0;
+		//for (double distance = 100; distance <= 20000; distance += 100) {
+		//	auto start_time = std::chrono::high_resolution_clock::now();
+		//	if (!exceeded_time) {
+		//		fuel = get_fuel_cost(distance, capacity);
+		//	}
+		//	std::cout << distance << " " << capacity << " " << std::fixed << fuel << std::endl;
+		//	if (std::chrono::high_resolution_clock::now() - start_time > std::chrono::seconds(2)) {
+		//		exceeded_time = true;
+		//	}
+		//}
+		
+	}
+
+	std::vector<std::thread> threads;
+	for (int i = 0; i < (int)works.size(); ++i) {
+		threads.emplace_back([&works, i]() {
+			works.at(i).run();
+			});
+	}
+	for (auto& t : threads) {
+		t.join();
+	}
+
+	for (auto& w : works) {
+		w.print_result();
 		std::cout << std::endl; // blank line between sets
 	}
+
 }
