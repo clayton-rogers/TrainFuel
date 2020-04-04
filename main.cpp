@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <chrono>
 
 struct TrainState {
 	double distance = 0.0;
@@ -54,9 +55,17 @@ int main() {
 	// Output format is for gnu plot
 	std::cout << "# Dist Capacity fuel" << std::endl;
 	for (double capacity = 500; capacity <= 2000; capacity += 100) {
-		for (double distance = 100; distance <= 6000; distance += 100) {
-			double fuel = get_fuel_cost(distance, capacity);
+		bool exceeded_time = false;
+		double fuel = 0.0;
+		for (double distance = 100; distance <= 20000; distance += 100) {
+			auto start_time = std::chrono::high_resolution_clock::now();
+			if (!exceeded_time) {
+				fuel = get_fuel_cost(distance, capacity);
+			}
 			std::cout << distance << " " << capacity << " " << std::fixed << fuel << std::endl;
+			if (std::chrono::high_resolution_clock::now() - start_time > std::chrono::seconds(2)) {
+				exceeded_time = true;
+			}
 		}
 		std::cout << std::endl; // blank line between sets
 	}
