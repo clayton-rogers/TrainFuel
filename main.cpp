@@ -65,7 +65,7 @@ public:
 
 			++current_station_id;
 			current_fuel -= 2 * station_spacing; // 2x because we have to make it back to the previous station to refuel too
-			while (current_fuel > 0 && current_station_id < stations.size()) {
+			while (current_fuel > 0 && current_station_id < (int)stations.size()) {
 				// If the train dumped all its fuel right now, what would the station it creates look like?
 				FuelPump for_this_route( static_cast<double>((station_spacing*current_station_id)) / current_fuel);
 				stations.at(current_station_id).add_fuel_pump(for_this_route);
@@ -86,7 +86,7 @@ public:
 
 			++current_station_id;
 			current_fuel -= 2 * station_spacing; // 2x because we have to make it back to the previous station to refuel too
-			while (current_fuel > 0 && current_station_id < stations.size()) {
+			while (current_fuel > 0 && current_station_id < (int)stations.size()) {
 				// If the train dumped all its fuel right now, what would the station it creates look like?
 				FuelPump for_this_route(price_for_full_load / current_fuel);
 				stations.at(current_station_id).add_fuel_pump(for_this_route);
@@ -147,6 +147,49 @@ void sim_railline() {
 	std::cout << "Best trip cost for distance: " << travel_distance << " is " << r.get_travel_cost_for_distance(travel_distance) << std::endl;
 }
 
+struct TrainState {
+	double distance = 0.0;
+	double fuel = 0.0;
+	double divisor = 1.0;
+};
+static TrainState cached_state;
+
+double get_fuel_cost(double distance, double capacity) {
+
+	double divisor = 1.0;
+	double distance_traveled = 0.0;
+	double fuel = 0.0;
+
+	if (cached_state.distance < distance) {
+		divisor = cached_state.divisor;
+		distance_traveled = cached_state.distance;
+		fuel = cached_state.fuel;
+	}
+
+	while (true) {
+		double posible_distance_on_this_round = capacity / divisor;
+
+		if (distance_traveled + posible_distance_on_this_round > distance) {
+			double amount_needed = distance - distance_traveled;
+			fuel += amount_needed * divisor;
+			distance_traveled += amount_needed;
+			break;
+		} else {
+			fuel += posible_distance_on_this_round * divisor;
+			distance_traveled += posible_distance_on_this_round;
+			divisor += 2.0;
+
+			cached_state.fuel = fuel;
+			cached_state.distance = distance_traveled;
+			cached_state.divisor = divisor;
+		}
+	}
+
+	return fuel;
+}
+
 int main() {
-	sim_railline();
+	for (double distance = 100; distance <= 10010; distance += 100) {
+		std::cout << "Dist: " << distance << " fuel: " << get_fuel_cost(distance, 500) << " div: " << cached_state.divisor << std::endl;
+	}
 }
