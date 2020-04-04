@@ -138,11 +138,15 @@ private:
 	std::vector<Station> stations;
 };
 
-int main() {
+void sim_railline() {
 	RailLine r(1200, 100, 500);
 	for (const auto& price : r.get_fuel_prices()) {
 		std::cout << "Dist: \t" << price.position << " \tPrice: \t" << price.price << std::endl;
 	}
 	int travel_distance = 600;
 	std::cout << "Best trip cost for distance: " << travel_distance << " is " << r.get_travel_cost_for_distance(travel_distance) << std::endl;
+}
+
+int main() {
+	sim_railline();
 }
