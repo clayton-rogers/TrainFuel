@@ -1,5 +1,7 @@
 #include <iostream>
 #include <vector>
+#include <chrono>
+#include <thread>
 
 class TrainCalculator {
 public:
@@ -86,9 +88,23 @@ private:
 int main() {
 	// Output format is for gnu plot
 	std::cout << "# Dist Capacity fuel" << std::endl;
+	std::vector<std::thread> threads;
+	std::vector<TrainCalculator> tc;
 	for (double capacity = 500; capacity <= 2000; capacity += 100) {
-		TrainCalculator t(capacity, 100, 6000, 100);
-		t.run();
+		tc.emplace_back(capacity, 100, 6500, 100);
+	}
+
+	for (int i = 0; i < (int)tc.size(); ++i) {
+		threads.emplace_back([&tc, i]() {
+			tc.at(i).run();
+			});
+	}
+
+	for (auto& thread : threads) {
+		thread.join();
+	}
+
+	for (auto& t : tc) {
 		t.print_results();
 		std::cout << std::endl; // blank line between sets
 	}
