@@ -209,21 +209,25 @@ struct WorkUnit {
 };
 static std::vector<WorkUnit> work;
 
+
+static int NUM_THREAD = 1;
+static bool USE_CACHE = (NUM_THREAD == 1) ? true : false;
+
 void do_work(int unit) {
 	//std::cout << unit << std::endl;
 	const double distance = work.at(unit).distance;
-	work.at(unit).fuel = get_fuel_cost(distance, 500, true);
+	work.at(unit).fuel = get_fuel_cost(distance, 500, USE_CACHE);
 	work.at(unit).isDone.store(true);
 }
 
 int main() {
-	for (double distance = 100; distance <= 6610; distance += 100) {
+	for (double distance = 100; distance <= 20010; distance += 10) {
 		work.emplace_back(distance);
 	}
 
 	Thread_Pool tp(0, work.size(), do_work);
 	std::thread tp_thread([&tp]() {
-		tp.run(1);
+		tp.run(NUM_THREAD);
 		});
 
 	for (const auto& unit : work) {
