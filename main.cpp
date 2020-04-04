@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
-
+#include "Thread_Pool.h"
+#include <atomic>
 
 class FuelPump {
 public:
@@ -152,7 +153,7 @@ struct TrainState {
 	double fuel = 0.0;
 	double divisor = 1.0;
 };
-static TrainState cached_state;
+//static TrainState cached_state;
 
 double get_fuel_cost(double distance, double capacity) {
 
@@ -160,11 +161,11 @@ double get_fuel_cost(double distance, double capacity) {
 	double distance_traveled = 0.0;
 	double fuel = 0.0;
 
-	if (cached_state.distance < distance) {
-		divisor = cached_state.divisor;
-		distance_traveled = cached_state.distance;
-		fuel = cached_state.fuel;
-	}
+	//if (cached_state.distance < distance) {
+	//	divisor = cached_state.divisor;
+	//	distance_traveled = cached_state.distance;
+	//	fuel = cached_state.fuel;
+	//}
 
 	while (true) {
 		double posible_distance_on_this_round = capacity / divisor;
@@ -179,17 +180,51 @@ double get_fuel_cost(double distance, double capacity) {
 			distance_traveled += posible_distance_on_this_round;
 			divisor += 2.0;
 
-			cached_state.fuel = fuel;
-			cached_state.distance = distance_traveled;
-			cached_state.divisor = divisor;
+			//cached_state.fuel = fuel;
+			//cached_state.distance = distance_traveled;
+			//cached_state.divisor = divisor;
 		}
 	}
 
 	return fuel;
 }
 
+struct WorkUnit {
+	double distance;
+	double fuel = 0;
+	std::atomic<bool> isDone{ false };
+
+	WorkUnit(double distance) : distance(distance) {}
+	
+	// Allow thread unsafe copy
+	WorkUnit(const WorkUnit& other) {
+		distance = other.distance;
+	}
+};
+static std::vector<WorkUnit> work;
+
+void do_work(int unit) {
+	const double distance = work.at(unit).distance;
+	work.at(unit).fuel = get_fuel_cost(distance, 500);
+	work.at(unit).isDone.store(true);
+}
+
 int main() {
 	for (double distance = 100; distance <= 10010; distance += 100) {
-		std::cout << "Dist: " << distance << " fuel: " << get_fuel_cost(distance, 500) << " div: " << cached_state.divisor << std::endl;
+		work.emplace_back(distance);
 	}
+
+	Thread_Pool tp(0, work.size() - 1, do_work);
+	std::thread tp_thread([&tp]() {
+		tp.run();
+		});
+
+	for (const auto& unit : work) {
+		while (!unit.isDone.load()) {
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+		std::cout << "Dist: " << unit.distance << " fuel: " << unit.fuel << std::endl;
+	}
+
+	tp_thread.join();
 }
