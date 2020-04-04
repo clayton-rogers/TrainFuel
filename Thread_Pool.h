@@ -45,20 +45,30 @@ public:
 
 		// main thread feeds work
 		int next_work = start;
-		while (!stop.load()) {
+		bool work_is_done = false;
+		while (!work_is_done) {
 			for (int i = 0; i < num_threads; ++i) {
 				if (ready_for_more_work.at(i).load()) {
 					work.at(i) = next_work;
 					ready_for_more_work.at(i).store(false); // indicate work is ready
 					++next_work;
 					if (next_work == end) {
-						stop.store(true);
+						work_is_done = true;
 						break;
 					}
 				}
 				std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			}
 		}
+		// Wait for all threads to finish their task
+		for (int i = 0; i < num_threads; ++i) {
+			while (!ready_for_more_work.at(i).load()) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
+		}
+		// Tell threads to exit
+		stop.store(true);
+		// Collect them all
 		for (auto& t : threads) {
 			t.join();
 		}

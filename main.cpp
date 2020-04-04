@@ -153,24 +153,34 @@ struct TrainState {
 	double fuel = 0.0;
 	double divisor = 1.0;
 };
-//static TrainState cached_state;
 
-double get_fuel_cost(double distance, double capacity) {
+
+double get_fuel_cost(double distance, double capacity, bool is_cached = false) {
 
 	double divisor = 1.0;
 	double distance_traveled = 0.0;
 	double fuel = 0.0;
 
-	//if (cached_state.distance < distance) {
-	//	divisor = cached_state.divisor;
-	//	distance_traveled = cached_state.distance;
-	//	fuel = cached_state.fuel;
-	//}
+	static TrainState cached_state;
+
+	if (is_cached) {
+		if (cached_state.distance < distance) {
+			divisor = cached_state.divisor;
+			distance_traveled = cached_state.distance;
+			fuel = cached_state.fuel;
+		}
+	}
 
 	while (true) {
 		double posible_distance_on_this_round = capacity / divisor;
 
 		if (distance_traveled + posible_distance_on_this_round > distance) {
+			if (is_cached) {
+				cached_state.fuel = fuel;
+				cached_state.distance = distance_traveled;
+				cached_state.divisor = divisor;
+			}
+
 			double amount_needed = distance - distance_traveled;
 			fuel += amount_needed * divisor;
 			distance_traveled += amount_needed;
@@ -179,10 +189,6 @@ double get_fuel_cost(double distance, double capacity) {
 			fuel += posible_distance_on_this_round * divisor;
 			distance_traveled += posible_distance_on_this_round;
 			divisor += 2.0;
-
-			//cached_state.fuel = fuel;
-			//cached_state.distance = distance_traveled;
-			//cached_state.divisor = divisor;
 		}
 	}
 
@@ -204,19 +210,20 @@ struct WorkUnit {
 static std::vector<WorkUnit> work;
 
 void do_work(int unit) {
+	//std::cout << unit << std::endl;
 	const double distance = work.at(unit).distance;
-	work.at(unit).fuel = get_fuel_cost(distance, 500);
+	work.at(unit).fuel = get_fuel_cost(distance, 500, true);
 	work.at(unit).isDone.store(true);
 }
 
 int main() {
-	for (double distance = 100; distance <= 10010; distance += 100) {
+	for (double distance = 100; distance <= 6610; distance += 100) {
 		work.emplace_back(distance);
 	}
 
-	Thread_Pool tp(0, work.size() - 1, do_work);
+	Thread_Pool tp(0, work.size(), do_work);
 	std::thread tp_thread([&tp]() {
-		tp.run();
+		tp.run(1);
 		});
 
 	for (const auto& unit : work) {
