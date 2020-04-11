@@ -67,13 +67,13 @@ public:
 	void run() {
 		bool exceeded_time = false;
 		double fuel = 0.0;
-		for (double distance = 10; distance <= 20000; distance += 100) {
+		for (double distance = 0.1; distance <= 5; distance += 0.1) {
 			auto start_time = std::chrono::high_resolution_clock::now();
 			if (!exceeded_time) {
 				fuel = get_fuel_cost(distance, capacity);
 			}
 			results.emplace_back(distance, fuel);
-			//std::cout << distance << " " << capacity << " " << std::fixed << fuel << std::endl;
+			std::cout << distance << " " << capacity << " " << std::fixed << fuel << std::endl;
 			if (std::chrono::high_resolution_clock::now() - start_time > std::chrono::seconds(10)) {
 				exceeded_time = true;
 			}
@@ -97,7 +97,7 @@ int main() {
 	// Output format is for gnu plot
 	std::cout << "# Dist Capacity fuel" << std::endl;
 	std::vector<Work> works;
-	for (double capacity = 500; capacity <= 2000; capacity += 100) {
+	for (double capacity = 1; capacity <= 1; capacity += 100) {
 		works.emplace_back(capacity);
 		//Work w(capacity);
 		//w.run();
@@ -130,8 +130,8 @@ int main() {
 	}
 
 	for (auto& w : works) {
-		w.print_result();
-		std::cout << std::endl; // blank line between sets
+		//w.print_result();
+		//std::cout << std::endl; // blank line between sets
 	}
 
 }
